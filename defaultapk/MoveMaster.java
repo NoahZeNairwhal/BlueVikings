@@ -44,6 +44,10 @@ public class MoveMaster {
 
         //Used to generate all other points
         public moveData(moveData prev, int[] indices, float[] point, float airDistanceSquared) {
+            this.indices = indices;
+            this.point = point;
+            this.airDistanceSquared = airDistanceSquared;
+
             //Tries to cut out the parent if it's possible to go straight to this moveData from the parent's parent
             //Checks if the parent is null (then we're root) or the parent of the parent is null (in which case we can't cut the parent)
             if(prev != null && prev.prev != null) {
@@ -57,13 +61,9 @@ public class MoveMaster {
                 //We are root or need to keep the parent
                 this.prev = prev;
             }
-
-            this.indices = indices;
-            this.point = point;
-            this.airDistanceSquared = airDistanceSquared;
             //Subtracting the previous airDistanceSquared is necessary since we have a new distance between this and the endpoint
             //I apologise for the poorly named variables. this.getAirDistanceSquared() builds the "path" between all parents to this point, and thus does not get subtracted ever
-            this.queueValue = airDistanceSquared + this.getAirDistanceSquared() + (prev.queueValue - airDistanceSquared);
+            this.queueValue = airDistanceSquared + this.getAirDistanceSquared() + (prev.queueValue - prev.airDistanceSquared);
         }
 
         public float getAirDistanceSquared() {
@@ -209,10 +209,14 @@ public class MoveMaster {
         }
     }
 
+    public static ArrayList<Point> moveTo(final float[] endpoint) {
+        return moveTo(new float[]{(float) myKinematics.getPosition().getX(), (float) myKinematics.getPosition().getY(), (float) myKinematics.getPosition().getZ()}, endpoint);
+    }
+
     //Returns a list of Points to move to
     //Parameter is array and not a point since Points contain double, so to (hopefully) make things faster floats are used when possible
     //Order of parameter and output is {X, Y, Z}
-    public static ArrayList<Point> moveTo(final float[] endpoint) {
+    public static ArrayList<Point> moveTo(float[] current, final float[] endpoint) {
         YourService.myLogger.log(Level.INFO, "MM mt 1. Creating output, queue, and checked");
         //The output points
         ArrayList<Point> output = new ArrayList<Point>();
@@ -226,8 +230,11 @@ public class MoveMaster {
         YourService.myLogger.log(Level.INFO, "MM mt 2. Creating beginData and adding it to the queue");
         //Constructs a moveData representation of the beginning point. Default constructor is used since we make queueValue specifically just the airDistance
         final moveData beginData = new moveData();
-        beginData.point = new float[]{(float) myKinematics.getPosition().getX(), (float) myKinematics.getPosition().getY(), (float) myKinematics.getPosition().getZ()};
+        beginData.point = new float[]{current[0], current[1], current[2]};
+        YourService.myLogger.log(Level.INFO, "MM mt 2.25. Kinematics Point: " + myKinematics.getPosition().getX() + ", " + myKinematics.getPosition().getY() + ", " + myKinematics.getPosition().getZ());
+        YourService.myLogger.log(Level.INFO, "MM mt 2.5. Point: " + beginData.point[0] + ", " + beginData.point[1] + ", " + beginData.point[2]);
         beginData.indices = new int[]{(int) ((beginData.point[0] - Constants.minX) / Constants.masterPointsPrecision), (int) ((beginData.point[1] - Constants.minY) / Constants.masterPointsPrecision), (int) ((beginData.point[2] - Constants.minZ) / Constants.masterPointsPrecision)};
+        YourService.myLogger.log(Level.INFO, "MM mt 2.75. Indices: " + beginData.indices[0] + ", " + beginData.indices[1] + ", " + beginData.indices[2]);
         beginData.airDistanceSquared = getAirDistanceSquared(beginData.point, endpoint);
         beginData.queueValue = beginData.airDistanceSquared;
         beginData.prev = null;
@@ -270,40 +277,62 @@ public class MoveMaster {
                             int spread = i + 1;
                             int[] indices = new int[]{0, 0, 0};
 
+                            YourService.myLogger.log(Level.INFO, "MM mt tr 1. Spread and Indices created. " + xIndex + " " + yIndex + " " + zIndex);
                             for (int y = yIndex - spread; y <= yIndex + spread; y++) {
+                                YourService.myLogger.log(Level.INFO, "MM mt tr 2. Inside loop 1, y: " + y);
                                 for (int z = zIndex - spread; z <= zIndex + spread; z++) {
+                                    YourService.myLogger.log(Level.INFO, "MM mt tr 3. Inside loop 1, z: " + z);
                                     if(y < 0 || y >= Constants.masterPoints[0].length || z < 0 || z >= Constants.masterPoints[0][0].length) {
-                                        break;
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 4. Broken: " + y + " " + z);
+                                        continue;
                                     }
 
                                     indices[1] = y;
                                     indices[2] = z;
 
                                     indices[0] = xIndex - spread;
+                                    YourService.myLogger.log(Level.INFO, "MM mt tr 5. Indices reconfigured");
 
                                     if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
                                         if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[indices[0]][y][z],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
 
                                     indices[0] = xIndex + spread;
+                                    YourService.myLogger.log(Level.INFO, "MM mt tr 10. Other xIndex");
 
                                     if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
                                         if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[indices[0]][y][z],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
                                 }
@@ -312,7 +341,7 @@ public class MoveMaster {
                             for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
                                 for (int z = zIndex - spread; z <= zIndex + spread; z++) {
                                     if(x < 0 || x >= Constants.masterPoints.length || z < 0 || z >= Constants.masterPoints[0][0].length) {
-                                        break;
+                                        continue;
                                     }
 
                                     indices[0] = x;
@@ -321,28 +350,44 @@ public class MoveMaster {
                                     indices[1] = yIndex - spread;
 
                                     if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
-                                        if (!checked.contains(indices)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
+                                        if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[x][indices[1]][z],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
 
                                     indices[1] = yIndex + spread;
 
                                     if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
-                                        if (!checked.contains(indices)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
+                                        if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[x][indices[1]][z],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
                                 }
@@ -351,7 +396,7 @@ public class MoveMaster {
                             for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
                                 for (int y = yIndex - spread + 1; y <= yIndex + spread - 1; y++) {
                                     if(x < 0 || x >= Constants.masterPoints.length || y < 0 || y >= Constants.masterPoints[0].length) {
-                                        break;
+                                        continue;
                                     }
 
                                     indices[0] = x;
@@ -360,28 +405,44 @@ public class MoveMaster {
                                     indices[2] = zIndex - spread;
 
                                     if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
-                                        if (!checked.contains(indices)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
+                                        if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[x][y][indices[2]],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
 
                                     indices[2] = zIndex + spread;
 
                                     if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
-                                        if (!checked.contains(indices)) {
+                                        YourService.myLogger.log(Level.INFO, "MM mt tr 6. Good to check indices");
+                                        if(!checked.contains(indices)) {
+                                            YourService.myLogger.log(Level.INFO, "MM mt tr 7. Indices are good");
                                             moveData newData = new moveData(beginData,
                                                     indices,
                                                     Constants.masterPoints[x][y][indices[2]],
                                                     getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
 
-                                            queue.remove(newData);
-                                            queue.add(newData);
+                                            if(queue.contains(newData)) {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 8. Queue contained newData");
+                                                queue.remove(newData);
+                                                queue.add(newData);
+                                            } else {
+                                                YourService.myLogger.log(Level.INFO, "MM mt tr 9. Queue did not contain newData");
+                                                queue.add(newData);
+                                            }
                                         }
                                     }
                                 }

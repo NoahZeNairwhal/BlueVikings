@@ -25,8 +25,10 @@ public class YourService extends KiboRpcService {
 
         myLogger.log(Level.INFO, "YS rp1 2. Starting Mission");
         myApi.startMission();
+        myLogger.log(Level.INFO, "YS rp1 3. Moving into the big KIZ");
+        myApi.moveTo(new Point(10.4d, -9.8d, 4.5d), MoveMaster.myKinematics.getOrientation(), true);
         myLogger.log(Level.INFO, "YS rp1 3. Creating a path to test movement");
-        ArrayList<Point> path = MoveMaster.moveTo(new float[]{10.5f, -8f, 5f});
+        ArrayList<Point> path = MoveMaster.moveTo(new float[]{10.4f, -9.8f, 4.5f}, new float[]{10.5f, -8f, 5f});
 
         myLogger.log(Level.INFO, "YS rp1 4. Following path point by point");
         for(Point point: path) {
