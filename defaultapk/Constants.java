@@ -1,8 +1,8 @@
-package jp.jaxa.iss.kibo.rpc.defaultapk;
+package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import java.util.*;
 
-public static final class Constants {
+public final class Constants {
     //The minimum X value of the overall area
     public static final float minX = 10.3f;
     //The maximum X value of the overall area
@@ -19,19 +19,19 @@ public static final class Constants {
     public static final float areaVolumeSquared = (maxX - minX) * (maxX - minX) * (maxY - minY) * (maxY - minY) * (maxZ - minZ) * (maxZ - minZ);
     //KOZ stands for keep out zones
     //Array of each zone, for each zone the minimum {X, Y, Z} values of that zone. Measured in metres
-    public static final float[][] minKOZ = new float[][]{{10.87, -9.5, 4.27},
-                                                            {10.25, -9.5, 4.97},
-                                                            {10.87, -8.5, 4.97},
-                                                            {10.25, -8.5, 4.27},
-                                                            {10.87, -7.4, 4.27},
-                                                            {10.25, -7.4, 4.97}};
+    public static final float[][] minKOZ = new float[][]{{10.87f, -9.5f, 4.27f},
+            {10.25f, -9.5f, 4.97f},
+            {10.87f, -8.5f, 4.97f},
+            {10.25f, -8.5f, 4.27f},
+            {10.87f, -7.4f, 4.27f},
+            {10.25f, -7.4f, 4.97f}};
     //Same as above, but for the maximum {X, Y, Z} values of each zone. Measured in metres
-    public static final float[][] maxKOZ = new float[][]{{11.6, -9.45, 4.97},
-                                                            {10.87, -9.45, 5.62},
-                                                            {11.6, -8.45, 5.62},
-                                                            {10.7, -8.45, 4.97},
-                                                            {11.6, -7.35, 4.97},
-                                                            {10.87, -7.35, 5.62}};
+    public static final float[][] maxKOZ = new float[][]{{11.6f, -9.45f, 4.97f},
+            {10.87f, -9.45f, 5.62f},
+            {11.6f, -8.45f, 5.62f},
+            {10.7f, -8.45f, 4.97f},
+            {11.6f, -7.35f, 4.97f},
+            {10.87f, -7.35f, 5.62f}};
     //The true distance in metres a given side of Astrobee should keep from the KOZ and area bounds.
     //See below Specifications to see the avoidance to be used in calculations
     public static final float trueAvoidance = 0.05f; //TODO: find a non-arbitrary value
@@ -80,7 +80,7 @@ public static final class Constants {
 
     //Helper method to create the masterPoints array
     public static final float[][][][] initMasterPoints() {
-        float[][][] output = new float[(int) Math.ceil((maxX - minX - 2 * Specifications.sideLength) / precision)][(int) Math.ceil((maxY - minY - 2 * Specifications.sideLength) / precision)][(int) Math.ceil((maxZ - minZ - 2 * Specifications.sideLength) / precision)];
+        float[][][][] output = new float[(int) Math.ceil((maxX - minX - 2 * Specifications.sideLength) / masterPointsPrecision)][(int) Math.ceil((maxY - minY - 2 * Specifications.sideLength) / masterPointsPrecision)][(int) Math.ceil((maxZ - minZ - 2 * Specifications.sideLength) / masterPointsPrecision)][3];
         float tempX = minX + Specifications.sideLength;
         float tempY = minY + Specifications.sideLength;
         float tempZ = minZ + Specifications.sideLength;

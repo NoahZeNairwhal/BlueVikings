@@ -1,19 +1,21 @@
-package jp.jaxa.iss.kibo.rpc.defaultapk;
+package jp.jaxa.iss.kibo.rpc.sampleapk;
 
-import gov.nasa.arc.astrobee.types.Quaternion;
 import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.Kinematics;
 
 import java.util.*;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.lang.Thread;
+import java.util.logging.Level;
 
 //This class is used to generate the points for Kibo to move to to avoid KOZ
 //It does not generate any quaternion info
 public class MoveMaster {
     //Used to get the current position of Kibo
-    public static Kinematics myKinematics
+    public static Kinematics myKinematics;
 
     //Helper class that's linked such that it sees its parents but not its children
-    public class moveData {
+    public static class moveData implements Comparable<moveData> {
         //Parent moveData
         public moveData prev;
         //The corresponding indices {X, Y, Z} of the point in the masterPoints list (see Constants.java)
@@ -79,19 +81,19 @@ public class MoveMaster {
         public boolean isIllegalMove() {
             //Checks if this point is out of bounds
             if(point[0] - Constants.avoidance < Constants.minX || point[0] + Constants.avoidance >= Constants.maxX
-                || point[1] - Constants.avoidance < Constants.minY || point[1] + Constants.avoidance >= Constants.maxY
-                || point[2] - Constants.avoidance < Constants.minZ || point[2] + Constants.avoidance >= Constants.maxZ) {
+                    || point[1] - Constants.avoidance < Constants.minY || point[1] + Constants.avoidance >= Constants.maxY
+                    || point[2] - Constants.avoidance < Constants.minZ || point[2] + Constants.avoidance >= Constants.maxZ) {
                 return true;
             } else {
                 //For each zone
-                for(int i = 0; i < Contants.minKOZ.length; i++) {
+                for(int i = 0; i < Constants.minKOZ.length; i++) {
                     //Checks if it may cross due to the zone being within the parent and this when considering with respect to only one axis
-                    if((Contants.minKOZ[i][0] >= point[0] && Contants.minKOZ[0] <= prev.point[0]) || (Contants.minKOZ[i][0] >= prev.point[0] && Contants.minKOZ[0] <= point[0])
-                            || (Contants.maxKOZ[i][0] >= point[0] && Contants.maxKOZ[0] <= prev.point[0]) || (Contants.maxKOZ[i][0] >= prev.point[0] && Contants.maxKOZ[0] <= point[0])
-                            || (Contants.minKOZ[i][1] >= point[1] && Contants.minKOZ[1] <= prev.point[1]) || (Contants.minKOZ[i][1] >= prev.point[1] && Contants.minKOZ[1] <= point[1])
-                            || (Contants.maxKOZ[i][1] >= point[1] && Contants.maxKOZ[1] <= prev.point[1]) || (Contants.maxKOZ[i][1] >= prev.point[1] && Contants.maxKOZ[1] <= point[1])
-                            || (Contants.minKOZ[i][2] >= point[2] && Contants.minKOZ[2] <= prev.point[2]) || (Contants.minKOZ[i][2] >= prev.point[2] && Contants.minKOZ[2] <= point[2])
-                            || (Contants.maxKOZ[i][2] >= point[2] && Contants.maxKOZ[2] <= prev.point[2]) || (Contants.maxKOZ[i][2] >= prev.point[2] && Contants.maxKOZ[2] <= point[2])) {
+                    if((Constants.minKOZ[i][0] >= point[0] && Constants.minKOZ[i][0] <= prev.point[0]) || (Constants.minKOZ[i][0] >= prev.point[0] && Constants.minKOZ[i][0] <= point[0])
+                            || (Constants.maxKOZ[i][0] >= point[0] && Constants.maxKOZ[i][0] <= prev.point[0]) || (Constants.maxKOZ[i][0] >= prev.point[0] && Constants.maxKOZ[i][0] <= point[0])
+                            || (Constants.minKOZ[i][1] >= point[1] && Constants.minKOZ[i][1] <= prev.point[1]) || (Constants.minKOZ[i][1] >= prev.point[1] && Constants.minKOZ[i][1] <= point[1])
+                            || (Constants.maxKOZ[i][1] >= point[1] && Constants.maxKOZ[i][1] <= prev.point[1]) || (Constants.maxKOZ[i][1] >= prev.point[1] && Constants.maxKOZ[i][1] <= point[1])
+                            || (Constants.minKOZ[i][2] >= point[2] && Constants.minKOZ[i][2] <= prev.point[2]) || (Constants.minKOZ[i][2] >= prev.point[2] && Constants.minKOZ[i][2] <= point[2])
+                            || (Constants.maxKOZ[i][2] >= point[2] && Constants.maxKOZ[i][2] <= prev.point[2]) || (Constants.maxKOZ[i][2] >= prev.point[2] && Constants.maxKOZ[i][2] <= point[2])) {
                         //Calculates the total change in only the X directions
                         float deltaX = point[0] - prev.point[0];
                         //Total change in only the Y direction
@@ -139,9 +141,9 @@ public class MoveMaster {
 
                             //Checks if it intersects either the "min" face or the "max" face. If so, it returns that moving from the parent to this is illegal
                             if(((minY + Constants.avoidance >= Constants.minKOZ[i][1] && minY - Constants.avoidance <= Constants.minKOZ[i][1])
-                                && (minZ + Constants.avoidance >= Constants.minKOZ[i][2] && minZ - Constants.avoidance <= Constants.minKOZ[i][2]))
-                                || ((maxY + Constants.avoidance >= Constants.minKOZ[i][1] && maxY - Constants.avoidance <= Constants.minKOZ[i][1])
-                                && (maxZ + Constants.avoidance >= Constants.minKOZ[i][2] && maxZ - Constants.avoidance <= Constants.minKOZ[i][2]))) {
+                                    && (minZ + Constants.avoidance >= Constants.minKOZ[i][2] && minZ - Constants.avoidance <= Constants.minKOZ[i][2]))
+                                    || ((maxY + Constants.avoidance >= Constants.minKOZ[i][1] && maxY - Constants.avoidance <= Constants.minKOZ[i][1])
+                                    && (maxZ + Constants.avoidance >= Constants.minKOZ[i][2] && maxZ - Constants.avoidance <= Constants.minKOZ[i][2]))) {
                                 return true;
                             }
                         }
@@ -157,13 +159,13 @@ public class MoveMaster {
                             maxZ = prev.point[2] + maxT * deltaZ;
 
                             if(((minX + Constants.avoidance >= Constants.minKOZ[i][0] && minX - Constants.avoidance <= Constants.minKOZ[i][0])
-                                && (minZ + Constants.avoidance >= Constants.minKOZ[i][2] && minZ - Constants.avoidance <= Constants.minKOZ[i][2]))
-                                || ((maxX + Constants.avoidance >= Constants.minKOZ[i][0] && maxX - Constants.avoidance <= Constants.minKOZ[i][0])
-                                && (maxZ + Constants.avoidance >= Constants.minKOZ[i][2] && maxZ - Constants.avoidance <= Constants.minKOZ[i][2]))) {
+                                    && (minZ + Constants.avoidance >= Constants.minKOZ[i][2] && minZ - Constants.avoidance <= Constants.minKOZ[i][2]))
+                                    || ((maxX + Constants.avoidance >= Constants.minKOZ[i][0] && maxX - Constants.avoidance <= Constants.minKOZ[i][0])
+                                    && (maxZ + Constants.avoidance >= Constants.minKOZ[i][2] && maxZ - Constants.avoidance <= Constants.minKOZ[i][2]))) {
                                 return true;
                             }
                         }
-                        //Respct to z
+                        //Respect to z
                         if(Math.abs(deltaZ) > 0.01) {
                             minZ = Constants.minKOZ[i][2];
                             maxZ = Constants.maxKOZ[i][2];
@@ -175,9 +177,9 @@ public class MoveMaster {
                             maxY = prev.point[1] + maxT * deltaY;
 
                             if(((minX + Constants.avoidance >= Constants.minKOZ[i][0] && minX - Constants.avoidance <= Constants.minKOZ[i][0])
-                                && (minY + Constants.avoidance >= Constants.minKOZ[i][1] && minY - Constants.avoidance <= Constants.minKOZ[i][1]))
-                                || ((maxX + Constants.avoidance >= Constants.minKOZ[i][0] && maxX - Constants.avoidance <= Constants.minKOZ[i][0])
-                                && (maxY + Constants.avoidance >= Constants.minKOZ[i][1] && maxY - Constants.avoidance <= Constants.minKOZ[i][1]))) {
+                                    && (minY + Constants.avoidance >= Constants.minKOZ[i][1] && minY - Constants.avoidance <= Constants.minKOZ[i][1]))
+                                    || ((maxX + Constants.avoidance >= Constants.minKOZ[i][0] && maxX - Constants.avoidance <= Constants.minKOZ[i][0])
+                                    && (maxY + Constants.avoidance >= Constants.minKOZ[i][1] && maxY - Constants.avoidance <= Constants.minKOZ[i][1]))) {
                                 return true;
                             }
                         }
@@ -191,7 +193,7 @@ public class MoveMaster {
 
         //Necessary due to the use of a PriorityQueue
         public int compareTo(moveData other) {
-            return this.queueValue - other.queueValue;
+            return this.queueValue == other.queueValue ? 0 : (this.queueValue < other.queueValue ? -1 : 1);
         }
 
         //Checks equality using indices. The only "incorrect" thing it does is add a check if the queue value of other is more than this.
@@ -210,283 +212,315 @@ public class MoveMaster {
     //Returns a list of Points to move to
     //Parameter is array and not a point since Points contain double, so to (hopefully) make things faster floats are used when possible
     //Order of parameter and output is {X, Y, Z}
-    public static ArrayList<Point> moveTo(float[] endpoint) {
-        moveTo(endpoint);
-    }
-
-    public static ArrayList<Point> moveTo(float[] endpoint) {
+    public static ArrayList<Point> moveTo(final float[] endpoint) {
+        YourService.myLogger.log(Level.INFO, "MM mt 1. Creating output, queue, and checked");
         //The output points
         ArrayList<Point> output = new ArrayList<Point>();
         //Priority because this is based on Dijkstra's algorithm
         //Blocking since I implemented multi-threading
-        PriorityBlockingQueue<moveData> queue = new PriorityBlockingQueue<moveData>();
+        final PriorityBlockingQueue<moveData> queue = new PriorityBlockingQueue<moveData>();
         //HashSet prevents duplicate checked indices being added (not that that should happen)
         //Also I think it has better .contains(a) time complexity than another queue or a list
-        HashSet<int[]> checked = new HashSet<int[]>();
+        final HashSet<int[]> checked = new HashSet<int[]>();
 
+        YourService.myLogger.log(Level.INFO, "MM mt 2. Creating beginData and adding it to the queue");
         //Constructs a moveData representation of the beginning point. Default constructor is used since we make queueValue specifically just the airDistance
-        moveData beginData = new moveData();
-        beginData.point = new float[]{myKinematics.getPosition().getX(), myKinematics.getPosition().getY(), myKinematics.getPosition().getZ()};
-        beginData.indices = new int[]{(int) ((beginData.point[0] - Constants.minX) / Constants.masterPointsPrecision), (int) ((beginData.point[1] - minY) / Constants.masterPointsPrecision), (int) ((beginData.point[2] - minZ) / Constants.masterPointsPrecision)};
+        final moveData beginData = new moveData();
+        beginData.point = new float[]{(float) myKinematics.getPosition().getX(), (float) myKinematics.getPosition().getY(), (float) myKinematics.getPosition().getZ()};
+        beginData.indices = new int[]{(int) ((beginData.point[0] - Constants.minX) / Constants.masterPointsPrecision), (int) ((beginData.point[1] - Constants.minY) / Constants.masterPointsPrecision), (int) ((beginData.point[2] - Constants.minZ) / Constants.masterPointsPrecision)};
         beginData.airDistanceSquared = getAirDistanceSquared(beginData.point, endpoint);
         beginData.queueValue = beginData.airDistanceSquared;
         beginData.prev = null;
+        queue.add(beginData);
 
+        YourService.myLogger.log(Level.INFO, "MM mt 3. Declaring endData, availableProcessors, and threadArr");
         //We'll reuse this to represent moving from the element removed from the queue to the endpoint
         moveData endData;
 
-        //The number of available processes. Guaranteed to always be at least 1, unless the computer expldoed
+        //The number of available processes. Guaranteed to always be at least 1, unless the computer exploded
         int availableProcessors;
         //An array to store all the threads we'll start. Will be processes - 1 since 1 process has to be kept for the main thread
-        Thread threadArr;
+        Thread[] threadArr;
 
         //While the lowest value element in the queue is not the endpoint
         while(queue.element().point != endpoint) {
+            YourService.myLogger.log(Level.INFO, "MM mt 4. Remove head queue element, add it to check, assign stuff and create indices");
             //Remove it so we can expand from it
             moveData tempData = queue.remove();
             //Add it to already checked points so we don't go back to it
             checked.add(tempData.indices);
 
-            availableProcessors = Runtime.getRuntime().getAvailableProcessors();
+            availableProcessors = Runtime.getRuntime().availableProcessors();
             threadArr = new Thread[availableProcessors - 1];
+            final int xIndex = tempData.indices[0];
+            final int yIndex = tempData.indices[1];
+            final int zIndex = tempData.indices[2];
 
             //For each available process
-            for(int i = 0; i < availableProcessors; i++) {
+            for(int j = 0; j < availableProcessors; j++) {
+                final int i = j;
                 //If not the process we're use for main
-                if(i < availableProcessors - 1) {
+                if(j < availableProcessors - 1) {
+                    YourService.myLogger.log(Level.INFO, "MM mt 5. Spawn thread");
                     //Create a thread that essentially does the following:
                     //Checks the masterPoints around tempData by creating a cube related to a certain spread, and then checks the surface of that cube
                     //If there's a just as fast/faster way to check all perimeter points of a 3d array that is cleaner than the mess I made, please implement it
-                    threadArr[i] = new Thread(() -> {
-                        int spread = i + 1;
-                        int[] indices = new int[]{xIndex - spread, yIndex - spread, zIndex - spread};
+                    threadArr[i] = new Thread() {
+                        public void run() {
+                            int spread = i + 1;
+                            int[] indices = new int[]{0, 0, 0};
 
-                        for(int y = yIndex - spread; y <= yIndex + spread; y++) {
-                            for(int z = zIndex - spread; z <= zIndex + spread; z++) {
-                                indices[0] = xIndex - spread;
+                            for (int y = yIndex - spread; y <= yIndex + spread; y++) {
+                                for (int z = zIndex - spread; z <= zIndex + spread; z++) {
+                                    if(y < 0 || y >= Constants.masterPoints[0].length || z < 0 || z >= Constants.masterPoints[0][0].length) {
+                                        break;
+                                    }
 
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                                    indices[1] = y;
+                                    indices[2] = z;
 
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
+                                    indices[0] = xIndex - spread;
+
+                                    if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                        if(!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[indices[0]][y][z],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
+
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
+                                    }
+
+                                    indices[0] = xIndex + spread;
+
+                                    if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                        if(!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[indices[0]][y][z],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
+
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
                                     }
                                 }
-
-                                indices[0] = xIndex + spread;
-
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
-
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
-                                    }
-                                }
-
-                                indices[2]++;
                             }
 
-                            indices[1]++;
-                        }
+                            for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
+                                for (int z = zIndex - spread; z <= zIndex + spread; z++) {
+                                    if(x < 0 || x >= Constants.masterPoints.length || z < 0 || z >= Constants.masterPoints[0][0].length) {
+                                        break;
+                                    }
 
-                        indices[0] = xIndex - spread + 1;
-                        indices[2] = zIndex - spread;
+                                    indices[0] = x;
+                                    indices[2] = z;
 
-                        for(int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
-                            for(int z = zIndex - spread; z <= zIndex + spread; z++) {
-                                indices[1] = yIndex - spread;
+                                    indices[1] = yIndex - spread;
 
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                                    if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
+                                        if (!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[x][indices[1]][z],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
 
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
+                                    }
+
+                                    indices[1] = yIndex + spread;
+
+                                    if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
+                                        if (!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[x][indices[1]][z],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
+
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
                                     }
                                 }
-
-                                indices[1] = yIndex + spread;
-
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
-
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
-                                    }
-                                }
-
-                                indices[2]++;
                             }
 
-                            indices[0]++;
-                        }
+                            for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
+                                for (int y = yIndex - spread + 1; y <= yIndex + spread - 1; y++) {
+                                    if(x < 0 || x >= Constants.masterPoints.length || y < 0 || y >= Constants.masterPoints[0].length) {
+                                        break;
+                                    }
 
-                        indices[0] = xIndex - spread + 1;
-                        indices[1] = yIndex - spread + 1;
+                                    indices[0] = x;
+                                    indices[1] = y;
 
-                        for(int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
-                            for(int y = yIndex - spread + 1; y <= yIndex + spread - 1; y++) {
-                                indices[2] = zIndex - spread;
+                                    indices[2] = zIndex - spread;
 
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                                    if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
+                                        if (!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[x][y][indices[2]],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
 
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
+                                    }
+
+                                    indices[2] = zIndex + spread;
+
+                                    if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
+                                        if (!checked.contains(indices)) {
+                                            moveData newData = new moveData(beginData,
+                                                    indices,
+                                                    Constants.masterPoints[x][y][indices[2]],
+                                                    getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
+
+                                            queue.remove(newData);
+                                            queue.add(newData);
+                                        }
                                     }
                                 }
-
-                                indices[2] = zIndex + spread;
-
-                                if(!checked.contains(indices)) {
-                                    moveData newData = new moveData(beginData,
-                                            indices,
-                                            Constants.masterPoints[xIndex][yIndex][zIndex],
-                                            getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
-
-                                    if(queue.remove(newData)) {
-                                        queue.add(newData);
-                                    }
-                                }
-
-                                indices[1]++;
                             }
-
-                            indices[0]++;
                         }
-                    });
+                    };
                     threadArr[i].start();
                 } else {
+                    YourService.myLogger.log(Level.INFO, "MM mt 6. Run in main");
                     int spread = i + 1;
-                    int[] indices = new int[]{xIndex - spread, yIndex - spread, zIndex - spread};
+                    int[] indices = new int[]{0, 0, 0};
 
-                    for(int y = yIndex - spread; y <= yIndex + spread; y++) {
-                        for(int z = zIndex - spread; z <= zIndex + spread; z++) {
+                    for (int y = yIndex - spread; y <= yIndex + spread; y++) {
+                        for (int z = zIndex - spread; z <= zIndex + spread; z++) {
+                            if(y < 0 || y >= Constants.masterPoints[0].length || z < 0 || z >= Constants.masterPoints[0][0].length) {
+                                break;
+                            }
+
+                            indices[1] = y;
+                            indices[2] = z;
+
                             indices[0] = xIndex - spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                if(!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[indices[0]][y][z],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
 
                             indices[0] = xIndex + spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[0] < 0 || indices[0] >= Constants.masterPoints.length)) {
+                                if(!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[indices[0]][y][z],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[indices[0]][y][z]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
-
-                            indices[2]++;
                         }
-
-                        indices[1]++;
                     }
 
-                    indices[0] = xIndex - spread + 1;
-                    indices[2] = zIndex - spread;
+                    for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
+                        for (int z = zIndex - spread; z <= zIndex + spread; z++) {
+                            if(x < 0 || x >= Constants.masterPoints.length || z < 0 || z >= Constants.masterPoints[0][0].length) {
+                                break;
+                            }
 
-                    for(int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
-                        for(int z = zIndex - spread; z <= zIndex + spread; z++) {
+                            indices[0] = x;
+                            indices[2] = z;
+
                             indices[1] = yIndex - spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
+                                if (!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[x][indices[1]][z],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
 
                             indices[1] = yIndex + spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[1] < 0 || indices[1] >= Constants.masterPoints[0].length)) {
+                                if (!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[x][indices[1]][z],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[x][indices[1]][z]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
-
-                            indices[2]++;
                         }
-
-                        indices[0]++;
                     }
 
-                    indices[0] = xIndex - spread + 1;
-                    indices[1] = yIndex - spread + 1;
+                    for (int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
+                        for (int y = yIndex - spread + 1; y <= yIndex + spread - 1; y++) {
+                            if(x < 0 || x >= Constants.masterPoints.length || y < 0 || y >= Constants.masterPoints[0].length) {
+                                break;
+                            }
 
-                    for(int x = xIndex - spread + 1; x <= xIndex + spread - 1; x++) {
-                        for(int y = yIndex - spread + 1; y <= yIndex + spread - 1; y++) {
+                            indices[0] = x;
+                            indices[1] = y;
+
                             indices[2] = zIndex - spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
+                                if (!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[x][y][indices[2]],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
 
                             indices[2] = zIndex + spread;
 
-                            if(!checked.contains(indices)) {
-                                moveData newData = new moveData(beginData,
-                                        indices,
-                                        Constants.masterPoints[xIndex][yIndex][zIndex],
-                                        getAirDistanceSquared(endpoint, Constants.masterPoints[xIndex][yIndex][zIndex]));
+                            if(!(indices[2] < 0 || indices[2] >= Constants.masterPoints[0][0].length)) {
+                                if (!checked.contains(indices)) {
+                                    moveData newData = new moveData(beginData,
+                                            indices,
+                                            Constants.masterPoints[x][y][indices[2]],
+                                            getAirDistanceSquared(endpoint, Constants.masterPoints[x][y][indices[2]]));
 
-                                if(queue.remove(newData)) {
+                                    queue.remove(newData);
                                     queue.add(newData);
                                 }
                             }
-
-                            indices[1]++;
                         }
-
-                        indices[0]++;
                     }
                 }
             }
 
+            YourService.myLogger.log(Level.INFO, "MM mt 7. Joining threads and creating endData and checking if it should be added");
             //Have to make sure all the threads have finished before we move on
             for(Thread thread: threadArr) {
-                thread.join();
+                try {
+                    thread.join();
+                } catch(InterruptedException e) {
+                    YourService.myLogger.log(Level.INFO, "MM mt 9. Error: " + e.getMessage());
+                }
             }
 
             //Creates an endData using tempData as the parent
@@ -499,19 +533,20 @@ public class MoveMaster {
             }
         }
 
+        YourService.myLogger.log(Level.INFO, "MM mt 8. Constructing path through reverse point traversal");
         //Constructs the list of output points in reverse
         moveData wow = queue.remove();
         //Adds the last child (endpoint) to the list
         output.add(wow.getPoint());
         //Goes back one
-        wow = output.prev;
+        wow = wow.prev;
 
         //While there are still parents
         while(wow != null) {
             //Adds them in front of all their children
             output.add(0, wow.getPoint());
             //Goes to their parent
-            wow = output.prev;
+            wow = wow.prev;
         }
 
         //Returns the list of points in the correct order since we inserted the reverse list in reverse order
