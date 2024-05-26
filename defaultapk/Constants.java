@@ -1,49 +1,61 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk;
 
-import java.util.*;
-
 public final class Constants {
-    //The minimum X value of the overall area
-    public static final float minX = 10.3f;
-    //The maximum X value of the overall area
-    public static final float maxX = 11.55f;
-    //The minimum Y value of the overall area
-    public static final float minY = -10.2f;
-    //The maximum Y value of the overall area
-    public static final float maxY = -6.0f;
-    //The minimum Z value of the overall area
-    public static final float minZ = 4.32f;
-    //The maximum Z value of the overall area
-    public static final float maxZ = 5.57f;
-    //The diagonal of the overall area squared
-    public static final float areaVolumeSquared = (maxX - minX) * (maxX - minX) * (maxY - minY) * (maxY - minY) * (maxZ - minZ) * (maxZ - minZ);
-    //KOZ stands for keep out zones
-    //Array of each zone, for each zone the minimum {X, Y, Z} values of that zone. Measured in metres
-    public static final float[][] minKOZ = new float[][]{{10.87f, -9.5f, 4.27f},
-            {10.25f, -9.5f, 4.97f},
-            {10.87f, -8.5f, 4.97f},
-            {10.25f, -8.5f, 4.27f},
-            {10.87f, -7.4f, 4.27f},
-            {10.25f, -7.4f, 4.97f}};
-    //Same as above, but for the maximum {X, Y, Z} values of each zone. Measured in metres
-    public static final float[][] maxKOZ = new float[][]{{11.6f, -9.45f, 4.97f},
-            {10.87f, -9.45f, 5.62f},
-            {11.6f, -8.45f, 5.62f},
-            {10.7f, -8.45f, 4.97f},
-            {11.6f, -7.35f, 4.97f},
-            {10.87f, -7.35f, 5.62f}};
-    //The true distance in metres a given side of Astrobee should keep from the KOZ and area bounds.
-    //See below Specifications to see the avoidance to be used in calculations
-    public static final float trueAvoidance = 0.05f; //TODO: find a non-arbitrary value
-    //A list of points which Astrobee should try and move to
-    //Array of X indices, for each Y indices, for each Z indices, for each actual {X, Y, Z} values
-    public static final float[][][][] masterPoints = initMasterPoints();
-    //How precise the list should be. Difference between two X/Y/Z values should equal difference. Measured in metres
-    public static final float masterPointsPrecision = 0.05f;
+    public static class Zone {
+        //{X, Y, Z}
+        public float[] min;
+        public float[] max;
+        //So it's easier to identify during logs
+        public String name;
+
+        public Zone() {
+            min = new float[3];
+            max = new float[3];
+            name = "";
+        }
+
+        public Zone(float[] min, float[] max, String name) {
+            this.min = min;
+            this.max = max;
+            this.name = name;
+        }
+
+        public void log() {
+            YourService.log(name + " zone. Min: " + min[0] + ", " + min[1] + ", " + min[2]);
+            YourService.log(name + " zone. Max: " + max[0] + ", " + max[1] + ", " + max[2]);
+        }
+    }
+
+    public static final class GameData {
+        //The two Keep-In-Zones
+        public static final Zone[] KIZ = new Zone[]{
+                new Zone(new float[]{10.3f, -10.2f, 4.32f}, new float[]{11.55f, -6.0f, 5.577f}, "KIZ 1"), //Big KIZ
+                new Zone(new float[]{9.5f, -10.5f, 4.02f}, new float[]{10.5f, -9.6f, 4.8f}, "KIZ 2")}; //Little KIZ where Bee initially undocks
+        //All size KOZ zones, organised by the number followed by the position
+        public static final Zone[] KOZ = new Zone[]{
+                new Zone(new float[]{10.87f, -9.5f, 4.27f}, new float[]{11.6f, -9.45f, 4.97f}, "KOZ 1-1"), //KOZ 1 position 1
+                new Zone(new float[]{10.25f, -9.5f, 4.97f}, new float[]{10.87f, -9.45f, 5.62f}, "KOZ 1-2"), //KOZ 1 position 2
+                new Zone(new float[]{10.87f, -8.5f, 4.97f}, new float[]{11.6f, -8.45f, 5.62f}, "KOZ 2-1"), //KOZ 2 position 1
+                new Zone(new float[]{10.25f, -8.5f, 4.27f}, new float[]{10.7f, -8.45f, 4.97f}, "KOZ 2-2"), //KOZ 2 position 2
+                new Zone(new float[]{10.87f, -7.4f, 4.27f}, new float[]{11.6f, -7.35f, 4.97f}, "KOZ 3-1"), //KOZ 3 position 1
+                new Zone(new float[]{10.25f, -7.4f, 4.97f}, new float[]{10.87f, -7.35f, 5.62f}, "KOZ 3-2")}; //KOZ 3 position 2
+        //The areas where the objects could be. Planes, technically, but it's easier to store as three dimensional for now
+        public static final Zone[] Areas = new Zone[]{
+                new Zone(new float[]{10.42f, -10.58f, 4.82f}, new float[]{11.48f, -10.58f, 5.57f}, "Area 1"),
+                new Zone(new float[]{10.3f, -9.25f, 3.76203f}, new float[]{11.55f, -8.5f, 3.76203f}, "Area 2"),
+                new Zone(new float[]{10.3f, -8.4f, 3.76093f}, new float[]{11.55f, -7.45f, 3.76093f}, "Area 3"),
+                new Zone(new float[]{9.866984f, -7.34f, 4.32f}, new float[]{9.866984f, -6.365f, 5.57f}, "Area 4")};
+        //Start position and orientation of Bee
+        public static final float[] startPosition = new float[]{9.815f, -9.806f, 4.293f};
+        public static final float[] startOrientation = new float[]{1f, 0f, 0f, 0f};
+        //Position and orientation of the astronaut
+        public static final float[] astronautPosition = new float[]{11.143f, -6.7607f, 4.9654f};
+        public static final float[] astronautOrientation = new float[]{0f, 0f, 0.707f, 0.707f};
+    }
 
     //Stores the offsets of various components of Astrobee from the centre of Astrobee
     //All are stored in the order {X, Y, Z} and measured in metres
-    public static final class Offsets {
+    public static final class MechanicalOffsets {
         //All the listed camera are monochrome
         //Camera used for image processing and taking a photo after sending finish command
         public static final float[] navCam = new float[]{0.1177f, -0.0422f, -0.0826f};
@@ -75,35 +87,61 @@ public final class Constants {
         public static final float sideLength = 0.32f;
     }
 
-    //The avoidance value to be used in calculations. Takes into account the diagonal length, since move functions use the centre. Measured in metres
-    public static final float avoidance = ((float) Math.sqrt(3)) * Specifications.sideLength + trueAvoidance;
+    public static final class Calculations {
+        //Volume of the KIZ 1 squared
+        public static final float KIZ1VolumeSquared =
+                (GameData.KIZ[0].max[0] - GameData.KIZ[0].min[0]) * (GameData.KIZ[0].max[0] - GameData.KIZ[0].min[0])
+                        + (GameData.KIZ[0].max[1] - GameData.KIZ[0].min[1]) * (GameData.KIZ[0].max[1] - GameData.KIZ[0].min[1])
+                        + (GameData.KIZ[0].max[2] - GameData.KIZ[0].min[2]) * (GameData.KIZ[0].max[2] - GameData.KIZ[0].min[2]);
+        //Volume of the KIZ 2 squared
+        public static final float KIZ2VolumeSquared =
+                (GameData.KIZ[1].max[0] - GameData.KIZ[1].min[0]) * (GameData.KIZ[1].max[0] - GameData.KIZ[1].min[0])
+                        + (GameData.KIZ[1].max[1] - GameData.KIZ[1].min[1]) * (GameData.KIZ[1].max[1] - GameData.KIZ[1].min[1])
+                        + (GameData.KIZ[1].max[2] - GameData.KIZ[1].min[2]) * (GameData.KIZ[1].max[2] - GameData.KIZ[1].min[2]);
+        //The metres a given side of Bee should try to keep from the KOZ and KIZ bounds
+        public static final float clearance = 0.05f; //TODO: find a non-arbitrary value
+        //The avoidance value to be used in calculations
+        public static final float avoidance = /*(((float) Math.sqrt(3)) * Specifications.sideLength / 2.0f) + */clearance;
+        //The precision in metres of creating the masterPoints list. 0.05 since that's the minimum distance needed for Bee to move
+        public static final float masterPointsPrecision = 0.05f;
+        //A list of points for KIZ 1 used for path planning
+        public static float[][][][] KIZ1masterPoints = initMasterPoints(0);
+        //A list of points for KIZ 2 used for path planning
+        public static float[][][][] KIZ2masterPoints = initMasterPoints(1);
+    }
 
     //Helper method to create the masterPoints array
-    public static final float[][][][] initMasterPoints() {
-        float[][][][] output = new float[(int) Math.ceil((maxX - minX - 2 * Specifications.sideLength) / masterPointsPrecision)][(int) Math.ceil((maxY - minY - 2 * Specifications.sideLength) / masterPointsPrecision)][(int) Math.ceil((maxZ - minZ - 2 * Specifications.sideLength) / masterPointsPrecision)][3];
-        float tempX = minX + Specifications.sideLength;
-        float tempY = minY + Specifications.sideLength;
-        float tempZ = minZ + Specifications.sideLength;
+    public static float[][][][] initMasterPoints(int kizIndex) {
+        float[][][][] output = new float
+                [(int) Math.ceil((GameData.KIZ[kizIndex].max[0] - GameData.KIZ[kizIndex].min[0] - 2 * Calculations.avoidance) / Calculations.masterPointsPrecision)]
+                [(int) Math.ceil((GameData.KIZ[kizIndex].max[1] - GameData.KIZ[kizIndex].min[1] - 2 * Calculations.avoidance) / Calculations.masterPointsPrecision)]
+                [(int) Math.ceil((GameData.KIZ[kizIndex].max[2] - GameData.KIZ[kizIndex].min[2] - 2 * Calculations.avoidance) / Calculations.masterPointsPrecision)]
+                [3];
+        float tempX = GameData.KIZ[kizIndex].min[0] + Calculations.avoidance;
+        float tempY = GameData.KIZ[kizIndex].min[1] + Calculations.avoidance;
+        float tempZ = GameData.KIZ[kizIndex].min[2] + Calculations.avoidance;
         int xIndex = 0;
         int yIndex = 0;
         int zIndex = 0;
 
-        while(tempX <= maxX - Specifications.sideLength && xIndex < output.length) {
-            while(tempY <= maxY - Specifications.sideLength && yIndex < output[0].length) {
-                while(tempZ <= maxZ - Specifications.sideLength && zIndex < output[0][0].length) {
+        while(tempX <= GameData.KIZ[kizIndex].max[0] - Calculations.avoidance && xIndex < output.length) {
+            while(tempY <= GameData.KIZ[kizIndex].max[1] - Calculations.avoidance && yIndex < output[0].length) {
+                while(tempZ <= GameData.KIZ[kizIndex].max[2] - Calculations.avoidance && zIndex < output[0][0].length) {
                     output[xIndex][yIndex][zIndex] = new float[]{tempX, tempY, tempZ};
 
-                    tempZ += masterPointsPrecision;
+                    tempZ += Calculations.masterPointsPrecision;
                     zIndex++;
                 }
 
-                tempZ = minZ + Specifications.sideLength;
-                tempY += masterPointsPrecision;
+                tempZ = GameData.KIZ[kizIndex].min[2] + Calculations.avoidance;
+                zIndex = 0;
+                tempY += Calculations.masterPointsPrecision;
                 yIndex++;
             }
 
-            tempY = minY + Specifications.sideLength;
-            tempX += masterPointsPrecision;
+            tempY = GameData.KIZ[kizIndex].min[1] + Calculations.avoidance;
+            yIndex = 0;
+            tempX += Calculations.masterPointsPrecision;
             xIndex++;
         }
 
