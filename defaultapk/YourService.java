@@ -26,17 +26,15 @@ public class YourService extends KiboRpcService {
 
         log("Starting mission");
         myApi.startMission();
-        log("Finished starting mission. Moving into big KIZ");
-        myApi.moveTo(new Point(10.7d, -9.8d, 4.5d), MoveMaster.myKinematics.getOrientation(), true);
-        log("Finished moving into big KIZ. Constructing path");
-        ArrayList<Point> path = MoveMaster.moveTo(new float[]{10.7f, -9.8f, 4.5f}, new float[]{10.5f, -8f, 5f});
-        log("Finished constructing path");
+        YourService.log("Creating path to point using MoveMaster");
+        ArrayList<Point> path = MoveMaster.moveTo(new Point(11d, -9d, 5d));
 
         for(Point point: path) {
-            log("Moving to point in the path");
+            YourService.log("Moving to Point: " + point.getX() + ", " + point.getY() + ", " + point.getZ());
             myApi.moveTo(point, MoveMaster.myKinematics.getOrientation(), true);
-            log("Finished moving to point in the path");
         }
+
+        YourService.log("All done!");
     }
 
     @Override
